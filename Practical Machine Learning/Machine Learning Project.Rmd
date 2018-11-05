@@ -1,0 +1,128 @@
+---
+title: "Machine Learning Project"
+author: "Ricardo Arango Giraldo"
+date: "30 de septiembre de 2018"
+output: html_document
+---
+
+## Overview
+
+
+### Background
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+
+### Data
+The data for this project come from this source: http://groupware.les.inf.puc-rio.br/har. If you use the document you create for this class for any purpose please cite them as they have been very generous in allowing their data to be used for this kind of assignment.
+
+. The training data for this project are available here: https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+. The test data are available here: https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+
+### What you should submit
+The goal of your project is to predict the manner in which they did the exercise. This is the “classe” variable in the training set. You may use any of the other variables to predict with. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases.
+
+1. Your submission should consist of a link to a Github repo with your R markdown and compiled HTML file describing your analysis. Please constrain the text of the writeup to < 2000 words and the number of figures to be less than 5. It will make it easier for the graders if you submit a repo with a gh-pages branch so the HTML page can be viewed online (and you always want to make it easy on graders :-).
+
+2. You should also apply your machine learning algorithm to the 20 test cases available in the test data above. Please submit your predictions in appropriate format to the programming assignment for automated grading. See the programming assignment for additional details.
+
+
+## Analysis
+1. Load the data set and briefly learn the characteristics of the data
+
+2. Use cross-validation method to built a valid model; 70% of the original data is used for model building (training data) while the rest of 30% of the data is used for testing (testing data)
+
+3. Since the number of variables in the training data is too large, clean the data by 1) excluding variables which apparently cannot be explanatory variables, and 2) reducing variables with little information.
+
+4. Apply PCA to reduce the number of variables
+
+5. Apply random forest method to build a model
+
+6. Check the model with the testing data set
+
+7. Apply the model to estimate classes of 20 observations
+
+
+###  Loading data
+
+```{r,echo=TRUE}
+suppressMessages(library(caret))
+data <- read.csv("./Data/pml-training.csv")
+```
+
+### Cross validation
+use 70% of training set data to built a model, and use the rest to test the model
+
+```{r}
+set.seed(1111)
+train <- createDataPartition(y=data$classe,p=.70,list=F)
+training <- data[train,]
+testing <- data[-train,]
+```
+
+
+###  Cleaning the training data
+
+```{r}
+#exclude identifier, timestamp, and window data (they cannot be used for prediction)
+Cl <- grep("name|timestamp|window|X", colnames(training), value=F) 
+trainingCl <- training[,-Cl]
+#select variables with high (over 95%) missing data --> exclude them from the analysis
+trainingCl[trainingCl==""] <- NA
+NArate <- apply(trainingCl, 2, function(x) sum(is.na(x)))/nrow(trainingCl)
+trainingCl <- trainingCl[!(NArate>0.95)]
+```
+
+
+### PCA
+Since the number of variables are still over 50, PCA is applied
+
+```{r}
+preProc <- preProcess(trainingCl[,1:52],method="pca",thresh=.8) #12 components are required
+preProc <- preProcess(trainingCl[,1:52],method="pca",thresh=.9) #18 components are required
+preProc <- preProcess(trainingCl[,1:52],method="pca",thresh=.95) #25 components are required
+
+preProc <- preProcess(trainingCl[,1:52],method="pca",pcaComp=25) 
+trainingPC <- predict(preProc,trainingCl[,1:52])
+```
+
+
+### Random forest
+Apply ramdom forest method (non-bionominal outcome & large sample size)
+
+```{r}
+suppressMessages(library(randomForest))
+modFitRF <- randomForest(trainingCl$classe ~ .,   data=trainingPC, do.trace=F)
+print(modFitRF) # view results 
+importance(modFitRF) # importance of each predictor
+```
+
+
+### Check with test set
+
+```{r}
+testingCl <- testing[,-Cl]
+testingCl[testingCl==""] <- NA
+NArate <- apply(testingCl, 2, function(x) sum(is.na(x)))/nrow(testingCl)
+testingCl <- testingCl[!(NArate>0.95)]
+testingPC <- predict(preProc,testingCl[,1:52])
+confusionMatrix(testingCl$classe,predict(modFitRF,testingPC))
+```
+
+
+### Predict classes of 20 test data
+
+```{r}
+testdata <- read.csv("./Data/pml-testing.csv")
+testdataCl <- testdata[,-Cl]
+testdataCl[testdataCl==""] <- NA
+NArate <- apply(testdataCl, 2, function(x) sum(is.na(x)))/nrow(testdataCl)
+testdataCl <- testdataCl[!(NArate>0.95)]
+testdataPC <- predict(preProc,testdataCl[,1:52])
+testdataCl$classe <- predict(modFitRF,testdataPC)
+```
+
+
+### Discussion
+In this analyses, 19622 observations from weight lifting exercise were used to analyze and predict correct body movement from others during the exercise. 70% of the total observations (13737 observations) were used to build a model by random forest method, and the rest of 30% of the observations (5885 observations) were used for model validation (cross-validation). The model statistics showed that the built model had the overall accuracy of 97% for the testing set, which is not overlapping with observations used to built the model. The sensitivity was in between 92%-99% and the specificity was over 99% for all classes (class A-E, total 5 classes. class A is the data from correct exercise while the other classes were data from exercises done in a wrong way). Overall, the model is well developed to predict the exercise classes during weight lifting. As for the limitation in this study, the observation data used in the analyses was collected from 6 young health participants in an experiment using Microsoft Kinect. Therefore, under those condition, the model is expected to perform over 95% accuracy; however, with different conditions, such as experiments with elderly people and/or using different device, the model might not perform well as shown in the analysis.
