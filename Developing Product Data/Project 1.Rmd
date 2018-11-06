@@ -1,0 +1,23 @@
+---
+title: "Project 1 from Developing Product Data"
+author: "Ricardo Arango Giraldo"
+date: "15 de octubre de 2018"
+output: html_document
+---
+
+Create a web page using R Markdown that features a map created with Leaflet.
+
+Host your webpage on either GitHub Pages, RPubs, or NeoCities.
+
+Your webpage must contain the date that you created the document, and it must contain a map created with Leaflet. We would love to see you show off your creativity!
+
+
+## MAP
+
+```{r,echo=TRUE}
+library(leaflet)
+my_map <- leaflet() %>% addTiles() 
+my_map <- my_map %>% addMarkers(lat=6.2002379, lng= -75.5725278, popup="My Office")
+my_map
+```
+
