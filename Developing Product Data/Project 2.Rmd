@@ -1,0 +1,36 @@
+---
+title: "R Markdown Presentation & Plotly"
+author: "Ricardo Arango Giraldo"
+date: "16 de octubre de 2018"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Instructions
+
+
+Create a web page presentation using R Markdown that features a plot created with Plotly. Host your webpage on either GitHub Pages, RPubs, or NeoCities. Your webpage must contain the date that you created the document, and it must contain a plot created with Plotly.
+
+## Plotly: showing a 3D Scatterplot
+
+Using the mtcars package with the variables:
+
+- x = Weight(1000lbs)
+- y = Mpg Miles/(US) gallon
+- z = Hp Gross horsepower
+
+```{r cars, echo = TRUE}
+summary(mtcars)
+```
+
+## 3D Scatterplot
+
+```{r,echo=TRUE}
+suppressMessages(library(plotly))
+plot_ly(x=mtcars$wt,y=mtcars$mpg,z=mtcars$hp,type="scatter3d", 
+        mode="markers", color=mtcars$wt)
+```
+
